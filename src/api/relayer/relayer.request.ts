@@ -1,8 +1,9 @@
-import {LimitOrderV4Struct} from '@1inch/fusion-sdk'
-import {Jsonify} from 'type-fest'
-import {SolanaOrderJSON} from 'cross-chain-order'
-import {DataFor} from '../../type-utils'
-import {NetworkEnum, SupportedChain} from '../../chains'
+import { LimitOrderV4Struct } from '@1inch/fusion-sdk'
+import { Jsonify } from 'type-fest'
+import { SolanaOrderJSON } from 'cross-chain-order'
+import { DataFor } from '../../type-utils'
+import { NetworkEnum, SupportedChain } from '../../chains'
+import { MoveVmOrderJSON } from 'cross-chain-order/movevm'
 
 export class RelayerRequestEvm {
     public readonly order: LimitOrderV4Struct
@@ -137,4 +138,97 @@ type RelayerRequestSvmSerialzied = {
         srcMint: string
         dstMint: string
     }
+}
+
+export type RelayerReqestMoveSerialized = {
+    orderId: string
+    srcChainId: NetworkEnum.SUI
+    dstChainId: number
+    auctionData: {
+        startTime: number
+        duration: number
+        initialRateBump: number
+        pointsAndTimeDeltas: Array<{
+            rateBump: number
+            timeDelta: number
+        }>
+    }
+    secretHashes: string[] | undefined
+    quoteId: string
+    order: {
+        hashLock: string
+        amount: string
+        srcSafetyDeposit: string
+        dstSafetyDeposit: string
+        timeLocks: string
+        expirationTime: number
+        assetIsNative: boolean
+        dstAmount: string
+        maker: string
+        receiver: string
+        srcToken: string // a string as `0x<packageid>::<module>::<type>` for MoveVM
+        dstToken: string // a evm address
+        salt: string
+    }
+}
+
+
+export class RelayerRequestMoveVM {
+    public readonly order: MoveVmOrderJSON
+    /// the onchain order id
+    public readonly orderId: string
+
+    public readonly quoteId: string
+
+    public readonly secretHashes: string[] | undefined
+
+    constructor(params: Readonly<DataFor<RelayerRequestMoveVM>>) {
+        this.order = params.order
+        this.quoteId = params.quoteId
+        this.secretHashes = params.secretHashes
+        this.orderId = params.orderId
+    }
+
+    build(): RelayerReqestMoveSerialized {
+        const auction = this.order.details.auction
+        const startTime = Number(auction.startTime)
+        const duration = Number(auction.duration)
+
+        return {
+            orderId: this.orderId,
+            srcChainId: NetworkEnum.SUI,
+            dstChainId: this.order.escrowParams.dstChainId,
+            auctionData: {
+                startTime,
+                duration,
+                initialRateBump: Number(auction.initialRateBump),
+                pointsAndTimeDeltas: auction.points.map((p) => ({
+                    rateBump: Number(p.coefficient),
+                    timeDelta: Number(p.delay)
+                }))
+            },
+            secretHashes: this.secretHashes,
+            quoteId: this.quoteId,
+            order: {
+                hashLock: this.order.escrowParams.hashlock,
+                amount: this.order.orderInfo.srcAmount,
+                srcSafetyDeposit: this.order.escrowParams.srcSafetyDeposit,
+                dstSafetyDeposit: this.order.escrowParams.dstSafetyDeposit,
+                timeLocks: this.order.escrowParams.timeLocks,
+                expirationTime:
+                    Number(this.order.extra.orderExpirationDelay) +
+                    startTime +
+                    duration,
+                assetIsNative: this.order.extra.srcAssetIsNative,
+                dstAmount: this.order.orderInfo.minDstAmount,
+                salt: this.order.extra.salt,
+                maker: this.order.orderInfo.maker,
+                receiver: this.order.orderInfo.receiver,
+                srcToken: this.order.orderInfo.srcToken,
+                dstToken: this.order.orderInfo.dstToken
+            }
+        }
+    }
+
+
 }

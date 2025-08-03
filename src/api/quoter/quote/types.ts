@@ -1,10 +1,10 @@
-import {EvmAddress} from '../../../domains'
-import {PresetEnum} from '../types'
-import {HashLock} from '../../../domains/hash-lock'
-import {Preset} from '../preset'
-import {AddressForChain} from '../../../type-utils'
-import {SupportedChain} from '../../../chains'
-import {ResolverCancellationConfig} from '../../../cross-chain-order/svm'
+import { EvmAddress } from '../../../domains'
+import { PresetEnum } from '../types'
+import { HashLock } from '../../../domains/hash-lock'
+import { Preset } from '../preset'
+import { AddressForChain } from '../../../type-utils'
+import { SupportedChain } from '../../../chains'
+import { ResolverCancellationConfig } from '../../../cross-chain-order/svm'
 
 export type EvmCrossChainOrderParamsData = {
     hashLock: HashLock
@@ -35,6 +35,17 @@ export type SvmCrossChainOrderParamsData = {
      * Default 12s
      */
     orderExpirationDelay?: bigint
+}
+
+export type MoveVmCrossChainOrderParamsData = {
+    hashlock: HashLock
+    preset?: PresetEnum
+    reciever: EvmAddress
+    salt?: bigint
+    takingFeeReceiver?: string
+    delayAuctionStartTimeBy?: bigint
+    orderExpirationDelay?: bigint
+    resolverCancellationConfig?: ResolverCancellationConfig
 }
 
 export type Presets = {

@@ -1,5 +1,5 @@
-import {AbiCoder} from 'ethers'
-import {BitMask, BN, trim0x, UINT_128_MAX} from '@1inch/byte-utils'
+import { AbiCoder } from 'ethers'
+import { BitMask, BN, trim0x, UINT_128_MAX } from '@1inch/byte-utils'
 import {
     FusionExtension,
     Extension,
@@ -8,11 +8,11 @@ import {
     ZX
 } from '@1inch/fusion-sdk'
 import assert from 'assert'
-import {AddressComplement} from '../../domains/addresses/address-complement'
-import {AuctionDetails} from '../../domains/auction-details'
-import {HashLock} from '../../domains/hash-lock'
-import {TimeLocks} from '../../domains/time-locks'
-import {SupportedChain} from '../../chains'
+import { AddressComplement } from '../../domains/addresses/address-complement'
+import { AuctionDetails } from '../../domains/auction-details'
+import { HashLock } from '../../domains/hash-lock'
+import { TimeLocks } from '../../domains/time-locks'
+import { SupportedChain } from '../../chains'
 import {
     AddressLike,
     EvmAddress as Address,
@@ -86,9 +86,9 @@ export class EscrowExtension extends FusionExtension {
 
         const extra = EscrowExtension.decodeExtraData(
             '0x' +
-                extension.postInteraction.slice(
-                    -EscrowExtension.EXTRA_DATA_LENGTH
-                )
+            extension.postInteraction.slice(
+                -EscrowExtension.EXTRA_DATA_LENGTH
+            )
         )
 
         const complement =
@@ -135,7 +135,7 @@ export class EscrowExtension extends FusionExtension {
         return {
             hashLock: HashLock.fromString(hashLock),
             dstChainId: Number(dstChainId),
-            dstToken: createAddress(dstToken.toString(), Number(dstChainId)),
+            dstToken: createAddress(dstToken.toString(), Number(dstChainId), undefined, true),
             dstSafetyDeposit: safetyDepositBN.getMask(new BitMask(0n, 128n))
                 .value,
             srcSafetyDeposit: safetyDepositBN.getMask(new BitMask(128n, 256n))

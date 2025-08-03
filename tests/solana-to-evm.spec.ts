@@ -1,26 +1,26 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-console */
-import {id, Interface, parseUnits} from 'ethers'
-import {Clock} from 'litesvm'
-import {add0x} from '@1inch/byte-utils'
+import { id, Interface, parseUnits } from 'ethers'
+import { Clock } from 'litesvm'
+import { add0x } from '@1inch/byte-utils'
 import assert from 'assert'
-import {ReadyEvmFork, setupEvm} from './utils/setup-evm'
-import {getSecret} from './utils/secret'
-import {ReadySolanaNode, setupSolana} from './utils/setup-solana'
-import {USDC_EVM} from './utils/addresses'
-import {newSolanaTx} from './utils/tx'
+import { ReadyEvmFork, setupEvm } from './utils/setup-evm'
+import { getSecret } from './utils/secret'
+import { ReadySolanaNode, setupSolana } from './utils/setup-solana'
+import { USDC_EVM } from './utils/addresses'
+import { newSolanaTx } from './utils/tx'
 import Resolver from '../dist/contracts/Resolver.sol/Resolver.json'
-import {NetworkEnum} from '../src/chains'
+import { NetworkEnum } from '../src/chains'
 
-import {SvmCrossChainOrder} from '../src/cross-chain-order/svm/svm-cross-chain-order'
-import {AuctionDetails} from '../src/domains/auction-details'
-import {HashLock} from '../src/domains/hash-lock'
-import {TimeLocks} from '../src/domains/time-locks'
-import {EvmAddress, SolanaAddress} from '../src/domains/addresses'
-import {SvmSrcEscrowFactory} from '../src/contracts/svm/svm-src-escrow-factory'
-import {DstImmutablesComplement} from '../src/domains/immutables'
-import {EscrowFactoryFacade} from '../src/contracts/evm/escrow-factory-facade'
-import {now} from '../src/utils'
+import { SvmCrossChainOrder } from '../src/cross-chain-order/svm/svm-cross-chain-order'
+import { AuctionDetails } from '../src/domains/auction-details'
+import { HashLock } from '../src/domains/hash-lock'
+import { TimeLocks } from '../src/domains/time-locks'
+import { EvmAddress, SolanaAddress } from '../src/domains/addresses'
+import { SvmSrcEscrowFactory } from '../src/contracts/svm/svm-src-escrow-factory'
+import { DstImmutablesComplement } from '../src/domains/immutables'
+import { EscrowFactoryFacade } from '../src/contracts/evm/escrow-factory-facade'
+import { now } from '../src/utils'
 
 jest.setTimeout(1000 * 10 * 60)
 jest.useFakeTimers({
@@ -57,7 +57,7 @@ describe('Solana to EVM', () => {
 
     beforeAll(async () => {
         srcChain = await setupSolana()
-        dstChain = await setupEvm({chainId: NetworkEnum.ETHEREUM})
+        dstChain = await setupEvm({ chainId: NetworkEnum.ETHEREUM })
     })
 
     afterAll(async () => {
@@ -130,7 +130,19 @@ describe('Solana to EVM', () => {
         ])
 
         console.log('order created')
-
+        // in move vm I have to call fill from the resolver's sui address
+        // order created will emit and event which the resolver will listen to
+        // the resolver will then call `fill` on sui chain to create the escrow
+        // and then will deploy the dst escrow on the evm chain
+        // the order is tracked throught the order api
+        // the relayer will update the order status etc.
+        // after the user confirms that both the src and dst escrows are created
+        // sends the relayer the secret which it forwards to the resolver
+        // TODO1: create the movevm src escrow factory class for creating order and test it with the testing script
+        // TODO2: create the movevm dst escrow factory class for deploying dst escrow when evm -> sui swaps
+        // TODO3: craete the resolver backend with ws which listens to the events emmited by the sui contract and to the resolver for evm orders
+        // TODO4: create the relayer and the order api
+        // TODO5: integrate with ui
         const fillAmount = order.makingAmount
         const resolverSvm = SolanaAddress.fromBuffer(
             srcChain.accounts.resolver.publicKey.toBuffer()
@@ -612,7 +624,7 @@ describe('Solana to EVM', () => {
 
     describe('partial fill', () => {
         it('private withdraw', async () => {
-            const secrets = Array.from({length: 10}).map(() => getSecret())
+            const secrets = Array.from({ length: 10 }).map(() => getSecret())
             const leaves = HashLock.getMerkleLeaves(secrets)
             const hashLock = HashLock.forMultipleFills(leaves)
             const srcToken = SolanaAddress.fromPublicKey(

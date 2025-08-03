@@ -1,27 +1,31 @@
-import {UINT_40_MAX} from '@1inch/byte-utils'
-import {randBigInt} from '@1inch/fusion-sdk'
+import { UINT_40_MAX } from '@1inch/byte-utils'
+import { randBigInt } from '@1inch/fusion-sdk'
 import assert from 'assert'
 import {
     EvmCrossChainOrderParamsData,
+    MoveVmCrossChainOrderParamsData,
     Presets,
     SvmCrossChainOrderParamsData
 } from './types'
-import {SvmCrossChainOrder} from '../../../cross-chain-order'
-import {EvmAddress, SolanaAddress} from '../../../domains/addresses'
-import {TimeLocks} from '../../../domains/time-locks'
-import {Cost, PresetEnum, QuoterResponse, TimeLocksRaw} from '../types'
-import {Preset} from '../preset'
-import {QuoterRequest} from '../quoter.request'
-import {EvmCrossChainOrder} from '../../../cross-chain-order/evm'
+import { SvmCrossChainOrder } from '../../../cross-chain-order'
+import { EvmAddress, SolanaAddress, SuiAddress } from '../../../domains/addresses'
+import { TimeLocks } from '../../../domains/time-locks'
+import { Cost, PresetEnum, QuoterResponse, TimeLocksRaw } from '../types'
+import { Preset } from '../preset'
+import { QuoterRequest } from '../quoter.request'
+import { EvmCrossChainOrder } from '../../../cross-chain-order/evm'
 import {
     EvmChain,
     isEvm,
     isSolana,
+    isSui,
+    MoveVmChain,
     SolanaChain,
     SupportedChain
 } from '../../../chains'
-import {AuctionWhitelistItem} from '../../../cross-chain-order/evm/types'
-import {AddressForChain} from '../../../type-utils'
+import { AuctionWhitelistItem } from '../../../cross-chain-order/evm/types'
+import { AddressForChain } from '../../../type-utils'
+import { MoveVmCrossChainOrder } from '../../../cross-chain-order/movevm'
 
 type Whitelist<SrcChain extends SupportedChain> = SrcChain extends EvmChain
     ? EvmAddress[]
@@ -48,7 +52,7 @@ export class Quote<
         public readonly prices: Cost,
         public readonly volume: Cost,
         public readonly slippage: number
-    ) {}
+    ) { }
 
     get srcChainId(): SrcChain {
         return this.params.srcChain
@@ -130,6 +134,74 @@ export class Quote<
         )
     }
 
+    static fromEvmToSuiQoute(
+        request: QuoterRequest<EvmChain, MoveVmChain>,
+        response: QuoterResponse
+    ) {
+        const presets = {
+            [PresetEnum.fast]: new Preset(response.presets.fast),
+            [PresetEnum.medium]: new Preset(response.presets.medium),
+            [PresetEnum.slow]: new Preset(response.presets.slow),
+            [PresetEnum.custom]: response.presets.custom
+                ? new Preset(response.presets.custom)
+                : undefined
+        }
+        const dstEscrowFactory = SuiAddress.fromString(response.dstEscrowFactory, true)
+
+        return new Quote<EvmChain, MoveVmChain>(
+            request,
+            response.quoteId,
+            BigInt(response.srcTokenAmount),
+            BigInt(response.dstTokenAmount),
+            presets,
+            EvmAddress.fromString(response.srcEscrowFactory),
+            dstEscrowFactory,
+            response.timeLocks,
+            BigInt(response.srcSafetyDeposit),
+            BigInt(response.dstSafetyDeposit),
+            response.whitelist.map((w) => EvmAddress.fromString(w)),
+            response.recommendedPreset,
+            response.prices,
+            response.volume,
+            response.autoK
+        )
+    }
+
+    static fromSuiToEvmQoute(
+        request: QuoterRequest<MoveVmChain, EvmChain>,
+        response: QuoterResponse
+    ) {
+
+        const presets = {
+            [PresetEnum.fast]: new Preset(response.presets.fast),
+            [PresetEnum.medium]: new Preset(response.presets.medium),
+            [PresetEnum.slow]: new Preset(response.presets.slow),
+            [PresetEnum.custom]: response.presets.custom
+                ? new Preset(response.presets.custom)
+                : undefined
+        }
+        const srcEscrowFactory = SuiAddress.fromString(response.srcEscrowFactory, true)
+
+        return new Quote<MoveVmChain, EvmChain>(
+            request,
+            response.quoteId,
+            BigInt(response.srcTokenAmount),
+            BigInt(response.dstTokenAmount),
+            presets,
+            srcEscrowFactory,
+            EvmAddress.fromString(response.dstEscrowFactory),
+            response.timeLocks,
+            BigInt(response.srcSafetyDeposit),
+            BigInt(response.dstSafetyDeposit),
+            [],
+            response.recommendedPreset,
+            response.prices,
+            response.volume,
+            response.autoK
+        )
+
+    }
+
     public createEvmOrder(
         params: EvmCrossChainOrderParamsData
     ): EvmCrossChainOrder {
@@ -148,7 +220,8 @@ export class Quote<
         const nonce = isNonceRequired
             ? (params.nonce ?? randBigInt(UINT_40_MAX))
             : params.nonce
-
+        /// @ts-ignore
+        /// obvs as createEvmOrder will never have a dstTokenAddress which is not addresslike
         const takerAsset = this.params.dstTokenAddress.zeroAsNative()
 
         return EvmCrossChainOrder.new(
@@ -263,12 +336,77 @@ export class Quote<
         )
     }
 
+    public createMoveVmOrder(
+        params: MoveVmCrossChainOrderParamsData
+    ): MoveVmCrossChainOrder {
+        assert(this.isSuiQoute(), 'cannot create non solana order')
+        assert(
+            this.params.dstTokenAddress instanceof EvmAddress,
+            'dstToken must be evm address'
+        )
+
+        const preset = this.getPreset(params?.preset || this.recommendedPreset)
+
+        const auctionDetails = preset.createAuctionDetails(
+            params.delayAuctionStartTimeBy
+        )
+
+        const allowMultipleFills = preset.allowMultipleFills
+
+        return MoveVmCrossChainOrder.new(
+            {
+                srcToken: this.params.srcTokenAddress,
+                dstToken: this.params.dstTokenAddress,
+                srcAmount: this.srcTokenAmount,
+                minDstAmount: preset.auctionEndAmount,
+                maker: this.params.walletAddress,
+                receiver: params.reciever
+            },
+            {
+                hashLock: params.hashlock,
+                srcChainId: this.params.srcChain,
+                dstChainId: this.params.dstChain,
+                srcSafetyDeposit: this.srcSafetyDeposit,
+                dstSafetyDeposit: this.dstSafetyDeposit,
+                timeLocks: TimeLocks.new({
+                    srcWithdrawal: BigInt(this.timeLocks.srcWithdrawal),
+                    srcPublicWithdrawal: BigInt(
+                        this.timeLocks.srcPublicWithdrawal
+                    ),
+                    srcCancellation: BigInt(this.timeLocks.srcCancellation),
+                    srcPublicCancellation: BigInt(
+                        this.timeLocks.srcPublicCancellation
+                    ),
+                    dstWithdrawal: BigInt(this.timeLocks.dstWithdrawal),
+                    dstPublicWithdrawal: BigInt(
+                        this.timeLocks.dstPublicWithdrawal
+                    ),
+                    dstCancellation: BigInt(this.timeLocks.dstCancellation)
+                })
+            },
+            {
+                auction: auctionDetails
+            },
+            {
+                allowMultipleFills,
+                orderExpirationDelay: params?.orderExpirationDelay,
+                source: this.params.source,
+                resolverCancellationConfig: params?.resolverCancellationConfig,
+                salt: params?.salt
+            }
+        )
+    }
+
     isEvmQuote(): this is Quote<EvmChain> {
         return isEvm(this.params.srcChain)
     }
 
     isSolanaQuote(): this is Quote<SolanaChain> {
         return isSolana(this.params.srcChain)
+    }
+
+    isSuiQoute(): this is Quote<MoveVmChain, EvmChain> {
+        return isSui(this.params.srcChain) && isEvm(this.params.dstChain)
     }
 
     getPreset(type = this.recommendedPreset): Preset {

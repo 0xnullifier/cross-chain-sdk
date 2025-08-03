@@ -2,9 +2,10 @@ import {
     AuctionDetails as BaseAuctionDetails,
     Extension
 } from '@1inch/fusion-sdk'
-import {AuctionPoint} from './types'
-import {hashForSolana} from './hasher'
-import {now} from '../../utils'
+import { AuctionPoint } from './types'
+import { hashForSolana } from './hasher'
+import { now } from '../../utils'
+import { bcs } from '@mysten/sui/bcs'
 
 export class AuctionDetails extends BaseAuctionDetails {
     static decode(data: string): AuctionDetails {
@@ -65,6 +66,32 @@ export class AuctionDetails extends BaseAuctionDetails {
     public hashForSolana(): Buffer {
         return hashForSolana(this)
     }
+
+    public encodeBcs(): Uint8Array {
+        const Point = bcs.struct('PointAndTimeDelta', {
+            rateBump: bcs.u64(),
+            timeDelta: bcs.u64()
+        })
+        const AuctionDetail = bcs.struct('AuctionData', {
+            starTime: bcs.u64(),
+            duration: bcs.u64(),
+            initialRateBump: bcs.u64(),
+            points: bcs.vector(Point)
+        })
+
+        const data = AuctionDetail.serialize({
+            starTime: this.startTime * 1000n,
+            initialRateBump: this.initialRateBump,
+            duration: this.duration * 1000n, // convert to milliseconds for sui
+            points: this.points.map((point) => ({
+                rateBump: BigInt(point.coefficient), // Convert to basis points
+                timeDelta: BigInt(point.delay * 1e3) // convert to milliseconds for sui
+            }))
+        })
+        return data.toBytes()
+
+    }
+
 }
 
 export type AuctionDetailsJSON = {

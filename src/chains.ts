@@ -1,4 +1,4 @@
-import {TupleToUnion} from './type-utils'
+import { TupleToUnion } from './type-utils'
 
 export enum NetworkEnum {
     ETHEREUM = 1,
@@ -14,7 +14,9 @@ export enum NetworkEnum {
     LINEA = 59144,
     SONIC = 146,
     UNICHAIN = 130,
-    SOLANA = 501
+    BASE_SEPOLIA = 84532,
+    SOLANA = 501,
+    SUI = 601
 }
 
 export const SupportedChains = [
@@ -30,7 +32,9 @@ export const SupportedChains = [
     NetworkEnum.LINEA,
     NetworkEnum.SONIC,
     NetworkEnum.UNICHAIN,
-    NetworkEnum.SOLANA
+    NetworkEnum.SOLANA,
+    NetworkEnum.SUI,
+    NetworkEnum.BASE_SEPOLIA
 ] as const
 
 type UnsupportedChain = Exclude<
@@ -39,7 +43,8 @@ type UnsupportedChain = Exclude<
 >
 
 export type SupportedChain = Exclude<NetworkEnum, UnsupportedChain>
-export type EvmChain = Exclude<SupportedChain, NetworkEnum.SOLANA>
+export type EvmChain = Exclude<SupportedChain, NetworkEnum.SOLANA | NetworkEnum.SUI>
+export type MoveVmChain = NetworkEnum.SUI
 export type SolanaChain = NetworkEnum.SOLANA
 
 export const isSupportedChain = (chain: unknown): chain is SupportedChain =>
@@ -48,10 +53,13 @@ export const isSupportedChain = (chain: unknown): chain is SupportedChain =>
 export const isEvm = (chain: SupportedChain): chain is EvmChain => {
     return (
         SupportedChains.includes(chain as number) &&
-        chain !== NetworkEnum.SOLANA
+        chain !== NetworkEnum.SOLANA && chain !== NetworkEnum.SUI
     )
 }
 
 export const isSolana = (chain: SupportedChain): chain is SolanaChain => {
     return chain === NetworkEnum.SOLANA
+}
+export const isSui = (chain: SupportedChain): boolean => {
+    return chain === NetworkEnum.SUI
 }

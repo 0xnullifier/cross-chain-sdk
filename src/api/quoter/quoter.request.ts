@@ -1,15 +1,17 @@
-import {isValidAmount} from '@1inch/fusion-sdk'
+import { isValidAmount } from '@1inch/fusion-sdk'
 import assert from 'assert'
-import {QuoterRequestParams} from './types'
+import { QuoterRequestParams } from './types'
 import {
     EvmChain,
     isEvm,
     isSolana,
+    isSui,
+    MoveVmChain,
     SolanaChain,
     SupportedChain
 } from '../../chains'
-import {createAddress, EvmAddress, SolanaAddress} from '../../domains'
-import type {AddressForChain} from '../../type-utils'
+import { createAddress, EvmAddress, SolanaAddress, SuiAddress } from '../../domains'
+import type { AddressForChain } from '../../type-utils'
 
 export class QuoterRequest<
     SrcChain extends SupportedChain = SupportedChain,
@@ -50,6 +52,12 @@ export class QuoterRequest<
         return isSolana(params.srcChain)
     }
 
+    static isMoveVmRequest(
+        params: QuoterRequestParams
+    ): params is QuoterRequestParams<MoveVmChain> {
+        return isSui(params.srcChain)
+    }
+
     static forEVM(
         params: QuoterRequestParams<EvmChain>
     ): QuoterRequest<EvmChain> {
@@ -73,6 +81,7 @@ export class QuoterRequest<
 
         if (isEvm(params.dstChain)) {
             assert(
+                ///@ts-ignore
                 !dstToken.isZero(),
                 `replace ${EvmAddress.ZERO} with ${EvmAddress.NATIVE}`
             )
@@ -85,6 +94,48 @@ export class QuoterRequest<
             dstToken,
             BigInt(params.amount),
             EvmAddress.fromString(params.walletAddress),
+            params.enableEstimate,
+            params.permit,
+            params.fee,
+            params.source,
+            params.isPermit2
+        )
+    }
+
+    static forEvmToMoveVm(
+        params: QuoterRequestParams<EvmChain, MoveVmChain>
+    ): QuoterRequest<EvmChain, MoveVmChain> {
+        const dstToken = createAddress(
+            params.dstTokenAddress,
+            params.dstChain,
+            undefined,
+            true
+        )
+        return new QuoterRequest<EvmChain, MoveVmChain>(
+            params.srcChain,
+            params.dstChain,
+            EvmAddress.fromString(params.srcTokenAddress),
+            dstToken,
+            BigInt(params.amount),
+            EvmAddress.fromString(params.walletAddress),
+            params.enableEstimate,
+            params.permit,
+            params.fee,
+            params.source,
+            params.isPermit2
+        )
+    }
+
+    static forMoveVmToEvm(
+        params: QuoterRequestParams<MoveVmChain, EvmChain>
+    ): QuoterRequest<MoveVmChain, EvmChain> {
+        return new QuoterRequest<MoveVmChain, EvmChain>(
+            params.srcChain,
+            params.dstChain,
+            createAddress(params.srcTokenAddress, params.srcChain, undefined, true),
+            EvmAddress.fromString(params.dstTokenAddress),
+            BigInt(params.amount),
+            SuiAddress.fromString(params.walletAddress, false),
             params.enableEstimate,
             params.permit,
             params.fee,
@@ -125,11 +176,19 @@ export class QuoterRequest<
     }
 
     isEvmRequest(): this is QuoterRequest<EvmChain> {
-        return isEvm(this.srcChain)
+        return isEvm(this.srcChain) && isEvm(this.dstChain)
     }
 
     isSolanaRequest(): this is QuoterRequest<SolanaChain> {
-        return isSolana(this.srcChain)
+        return isSolana(this.srcChain) && isEvm(this.dstChain)
+    }
+
+    isMoveVmToEvmRequest(): this is QuoterRequest<MoveVmChain, EvmChain> {
+        return isEvm(this.dstChain) && isSui(this.srcChain)
+    }
+
+    isEvmToMoveVmRequest(): this is QuoterRequest<EvmChain, MoveVmChain> {
+        return isEvm(this.srcChain) && isSui(this.dstChain)
     }
 
     build(): QuoterRequestParams {

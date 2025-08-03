@@ -1,5 +1,5 @@
-import {NetworkEnum} from './chains'
-import {EvmAddress} from './domains/addresses'
+import { NetworkEnum } from './chains'
+import { EvmAddress } from './domains/addresses'
 
 const TrueERC20 = EvmAddress.fromString(
     '0xda0000d4000015a526378bb6fafc650cea5966f8'
@@ -21,11 +21,12 @@ export const TRUE_ERC20 = {
     [NetworkEnum.ZKSYNC]: ZKTrueERC20,
     [NetworkEnum.LINEA]: TrueERC20,
     [NetworkEnum.SONIC]: TrueERC20,
-    [NetworkEnum.UNICHAIN]: TrueERC20
+    [NetworkEnum.UNICHAIN]: TrueERC20,
+    [NetworkEnum.BASE_SEPOLIA]: TrueERC20,
 }
 
 const ESCROW_FACTORY_ADDRESS = EvmAddress.fromString(
-    '0xa7bcb4eac8964306f9e3764f67db6a7af6ddf99a'
+    '0x733697D06E9AbC1C45d1a1c75D18910d43133a6F'
 )
 const ESCROW_ZK_FACTORY_ADDRESS = EvmAddress.fromString(
     '0x584aeab186d81dbb52a8a14820c573480c3d4773'
@@ -42,6 +43,7 @@ const ESCROW_DST_IMPLEMENTATION_ADDRESS = EvmAddress.fromString(
 const ESCROW_ZK_DST_IMPLEMENTATION_ADDRESS = EvmAddress.fromString(
     '0xdc4ccc2fc2475d0ed3fddd563c44f2bf6a3900c9'
 )
+export const SUI_PACKAGE_ID = "0xba30c2124c04179f3a84fef26149cd0daa8a132bee3234890ad5aa02aed9c76a"
 
 export const ESCROW_SRC_IMPLEMENTATION = {
     [NetworkEnum.ETHEREUM]: ESCROW_SRC_IMPLEMENTATION_ADDRESS,

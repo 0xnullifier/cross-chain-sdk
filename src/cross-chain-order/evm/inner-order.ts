@@ -1,6 +1,6 @@
-import {FusionOrder} from '@1inch/fusion-sdk'
-import {EscrowExtension} from './escrow-extension'
-import {EvmExtra, OrderInfoData} from './types'
+import { FusionOrder } from '@1inch/fusion-sdk'
+import { EscrowExtension } from './escrow-extension'
+import { EvmExtra, OrderInfoData } from './types'
 
 /**
  * Inner order class, not intended for public usage

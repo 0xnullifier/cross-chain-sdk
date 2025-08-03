@@ -47,6 +47,7 @@
     "@1inch/byte-utils": "3.1.0",
     "@1inch/fusion-sdk": "2.1.11-rc.2",
     "@coral-xyz/anchor": "0.31.1",
+    "@mysten/sui": "^1.37.1",
     "@openzeppelin/merkle-tree": "1.0.7",
     "axios": "1.8.2",
     "bs58": "6.0.0",

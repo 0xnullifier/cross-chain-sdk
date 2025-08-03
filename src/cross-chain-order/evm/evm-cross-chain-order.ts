@@ -16,17 +16,17 @@ import {
     EvmExtra,
     OrderInfoData
 } from './types'
-import {InnerOrder} from './inner-order'
-import {EscrowExtension} from './escrow-extension'
-import {AddressComplement} from '../../domains/addresses/address-complement'
-import {now} from '../../utils/time'
-import {createAddress, AddressLike, EvmAddress} from '../../domains/addresses'
-import {BaseOrder} from '../base-order'
-import {TRUE_ERC20} from '../../deployments'
-import {isEvm, isSupportedChain, SupportedChain} from '../../chains'
-import {HashLock} from '../../domains/hash-lock'
-import {TimeLocks} from '../../domains/time-locks'
-import {bufferFromHex} from '../../utils/bytes'
+import { InnerOrder } from './inner-order'
+import { EscrowExtension } from './escrow-extension'
+import { AddressComplement } from '../../domains/addresses/address-complement'
+import { now } from '../../utils/time'
+import { createAddress, AddressLike, EvmAddress } from '../../domains/addresses'
+import { BaseOrder } from '../base-order'
+import { TRUE_ERC20 } from '../../deployments'
+import { isEvm, isSupportedChain, SupportedChain } from '../../chains'
+import { HashLock } from '../../domains/hash-lock'
+import { TimeLocks } from '../../domains/time-locks'
+import { bufferFromHex } from '../../utils/bytes'
 
 export class EvmCrossChainOrder extends BaseOrder<
     EvmAddress,
@@ -78,7 +78,9 @@ export class EvmCrossChainOrder extends BaseOrder<
     get takerAsset(): AddressLike {
         return createAddress(
             this.inner.escrowExtension.dstToken.toString(),
-            this.dstChainId
+            this.dstChainId,
+            undefined,
+            true
         )
     }
 
@@ -105,7 +107,8 @@ export class EvmCrossChainOrder extends BaseOrder<
         const receiver = createAddress(
             this.inner.receiver.toString(),
             this.dstChainId,
-            this.escrowExtension.dstAddressFirstPart
+            this.escrowExtension.dstAddressFirstPart,
+            false
         )
 
         return receiver.isZero() ? this.maker : receiver
@@ -229,8 +232,8 @@ export class EvmCrossChainOrder extends BaseOrder<
             deadline === null
                 ? undefined
                 : deadline -
-                  ext.auctionDetails.startTime -
-                  ext.auctionDetails.duration
+                ext.auctionDetails.startTime -
+                ext.auctionDetails.duration
 
         return new EvmCrossChainOrder(
             ext,

@@ -1,4 +1,5 @@
 export enum ChainType {
     EVM,
-    SVM
+    SVM,
+    MOVEVM
 }

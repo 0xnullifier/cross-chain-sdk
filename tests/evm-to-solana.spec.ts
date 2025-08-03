@@ -1,28 +1,28 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-console */
-import {Interface, parseUnits, parseEther, id} from 'ethers'
-import {Clock} from 'litesvm'
-import {UINT_40_MAX} from '@1inch/byte-utils'
-import {add0x, randBigInt} from '@1inch/fusion-sdk'
+import { Interface, parseUnits, parseEther, id } from 'ethers'
+import { Clock } from 'litesvm'
+import { UINT_40_MAX } from '@1inch/byte-utils'
+import { add0x, randBigInt } from '@1inch/fusion-sdk'
 import assert from 'assert'
-import {ReadyEvmFork, setupEvm} from './utils/setup-evm'
-import {getSecret} from './utils/secret'
-import {ReadySolanaNode, setupSolana} from './utils/setup-solana'
-import {WETH_EVM} from './utils/addresses'
-import {getEvmFillData, newSolanaTx} from './utils/tx'
+import { ReadyEvmFork, setupEvm } from './utils/setup-evm'
+import { getSecret } from './utils/secret'
+import { ReadySolanaNode, setupSolana } from './utils/setup-solana'
+import { WETH_EVM } from './utils/addresses'
+import { getEvmFillData, newSolanaTx } from './utils/tx'
 import Resolver from '../dist/contracts/Resolver.sol/Resolver.json'
-import {NetworkEnum} from '../src/chains'
+import { NetworkEnum } from '../src/chains'
 
-import {EvmCrossChainOrder} from '../src/cross-chain-order'
-import {AuctionDetails} from '../src/domains/auction-details'
-import {HashLock} from '../src/domains/hash-lock'
-import {TimeLocks} from '../src/domains/time-locks'
-import {EvmAddress, SolanaAddress} from '../src/domains/addresses'
-import {SvmDstEscrowFactory} from '../src/contracts'
-import {DstImmutablesComplement} from '../src/domains'
-import {EscrowFactoryFacade} from '../src/contracts/evm/escrow-factory-facade'
-import {bufferFromHex} from '../src/utils/bytes'
-import {now} from '../src/utils'
+import { EvmCrossChainOrder } from '../src/cross-chain-order'
+import { AuctionDetails } from '../src/domains/auction-details'
+import { HashLock } from '../src/domains/hash-lock'
+import { TimeLocks } from '../src/domains/time-locks'
+import { EvmAddress, SolanaAddress } from '../src/domains/addresses'
+import { SvmDstEscrowFactory } from '../src/contracts'
+import { DstImmutablesComplement } from '../src/domains'
+import { EscrowFactoryFacade } from '../src/contracts/evm/escrow-factory-facade'
+import { bufferFromHex } from '../src/utils/bytes'
+import { now } from '../src/utils'
 
 jest.setTimeout(1000 * 10 * 60)
 jest.useFakeTimers({
@@ -58,7 +58,7 @@ describe('EVM to Solana', () => {
     }
 
     beforeAll(async () => {
-        srcChain = await setupEvm({chainId: NetworkEnum.ETHEREUM})
+        srcChain = await setupEvm({ chainId: NetworkEnum.ETHEREUM })
         dstChain = await setupSolana()
     })
 
@@ -133,7 +133,8 @@ describe('EVM to Solana', () => {
         const signature = await srcChain.maker.signTypedData(
             order.getTypedData(srcChain.chainId)
         )
-
+        // in deployed version this order is send to a relayer
+        // which then broadcasts it to the connected resolver backends
         let srcImmutables = order.toSrcImmutables(
             srcChain.chainId,
             resolverEvm,
